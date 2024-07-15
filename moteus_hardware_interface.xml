@@ -1,0 +1,11 @@
+<library path="moteus_hardware_interface">
+
+  <class name="moteus_hardware_interface/MoteusHardwareInterface" 
+          type="moteus_hardware_interface::MoteusHardwareInterface" 
+          base_class_type="hardware_interface::SystemInterface">
+    <description>
+      mjbots moteus hardware interface
+    </description>
+  </class>
+
+</library>
