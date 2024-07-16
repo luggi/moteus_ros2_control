@@ -17,6 +17,7 @@
 
 
 #include "moteus_control/moteus_hardware_interface.hpp"
+#include "moteus_protocol.h"
 #include "rclcpp/rclcpp.hpp"
 #include "moteus.h"
 
@@ -87,7 +88,7 @@ namespace moteus_hardware_interface
         hw_actuator_effort_limits_.push_back(std::stod(joint.parameters.at("effort_max")));
         hw_actuator_kp_limits_.push_back(std::stod(joint.parameters.at("kp_max")));
         hw_actuator_kd_limits_.push_back(std::stod(joint.parameters.at("kd_max")));
-        hw_actuator_ki_limits_.push_back(std::stod(joint.parameters.at("ki_max")));
+        hw_actuator_ki_limits_.push_back(std::stod(joint.parameters.at("ki_max")));       
         }
 
         /**
@@ -137,9 +138,33 @@ namespace moteus_hardware_interface
                 throw std::runtime_error("Error locking memory");
             }
         }
+
+                for (unsigned long i = 0; i < info_.joints.size(); i++)
+        {
+            mjbots::moteus::Controller::Options options;
+
+            options.id = hw_actuator_can_ids_[i];
+            controllers_[i] = std::make_shared<mjbots::moteus::Controller>(options);
+        }
+
+        // Stop everything to clear faults.
+        for (const auto& pair : controllers_) {
+            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Sending Actuator at Joint %d to idle...", pair.second->options().id);
+            pair.second->SetStop();
+        }
+        
+        // todo:
+        // set moteus parameters via debug protocol
+        // as shown in: https://github.com/mjbots/moteus/blob/main/lib/cpp/examples/diagnostic_protocol.cc
+        // i.e. min max endpoints, max vel torques etc, pid parameters
+        // maybe omit safety critical params to be only changed on moteus directly via tview
+
+        // We did not specify a transport so the default one was used when
+        // constructing our Controller instances.  We need to get access to
+        // that in order to send commands simultaneously to multiple servos.
+        transport_ = mjbots::moteus::Controller::MakeSingletonTransport({});
         
 
-        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Sending Actuator at Joint i to idle...");
 
         RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Checking Connection to Actuator i...");
 
@@ -245,7 +270,11 @@ namespace moteus_hardware_interface
     hardware_interface::CallbackReturn MoteusHardwareInterface::on_shutdown(
         const rclcpp_lifecycle::State & /*previous_state*/)
     {
-        // TODO: implement
+        for (const auto& pair : controllers_) {
+            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Sending Actuator at Joint %d to idle...", pair.second->options().id);
+            pair.second->SetStop();
+        }
+
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 
@@ -266,6 +295,9 @@ namespace moteus_hardware_interface
     hardware_interface::return_type MoteusHardwareInterface::write(
         const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
+        std::vector<mjbots::moteus::CanFdFrame> command_frames;
+        std::vector<mjbots::moteus::CanFdFrame> replies;
+
         // write() -> Update the actuator states and assemble CAN frames
         for (auto i = 0u; i < hw_state_positions_.size(); i++)
         {   
@@ -275,11 +307,35 @@ namespace moteus_hardware_interface
                 RCLCPP_WARN(rclcpp::get_logger("MoteusHardwareInterface"), "NaN command for actuator");
                 continue;
             }
+
+            mjbots::moteus::PositionMode::Command position_command;
+
+
+            position_command.position = hw_command_positions_[i];
+            position_command.velocity = hw_command_velocities_[i];
+            position_command.feedforward_torque = hw_command_efforts_[i];
+
+            command_frames.push_back(controllers_[i]->MakePosition(position_command));
+
             //hw_actuators_[i]->sendJointCommand(hw_command_positions_[i], hw_command_velocities_[i], hw_command_efforts_[i]);   
 
             // todo: send joint commands to moteus actuators   
         }
 
+        transport_->BlockingCycle(&command_frames[0], command_frames.size(), &replies);
+
+        for (const auto& frame : replies) {
+            servo_data_[frame.source] = mjbots::moteus::Query::Parse(frame.data, frame.size);
+        }
+
+        for (const auto& pair : servo_data_) {
+            const auto r = pair.second;
+            hw_state_efforts_[pair.first] = r.torque;
+            hw_state_positions_[pair.first] = r.position;
+            hw_state_velocities_[pair.first] = r.velocity;
+            hw_state_temperatures_[pair.first] = r.temperature;
+            hw_state_states_[pair.first] = static_cast<int>(r.mode);
+        }
         
         return hardware_interface::return_type::OK;
     }
@@ -354,47 +410,8 @@ PLUGINLIB_EXPORT_CLASS(
     moteus_hardware_interface::MoteusHardwareInterface, hardware_interface::SystemInterface)
 
 
-int main(int argc, char ** argv)
+
+int main()
 {
-  (void) argc;
-  (void) argv;
-
-  using namespace mjbots;
-
-  moteus::Controller::Options options;
-  options.id = 1;
-
-  moteus::Controller controller(options);
-
-  // Command a stop to the controller in order to clear any faults.
-  controller.SetStop();
-
-  while (true) {
-    moteus::PositionMode::Command cmd;
-
-    // Here we will just command a position of NaN and a velocity of
-    // 0.0.  This means "hold position wherever you are".
-    cmd.position = std::numeric_limits<double>::quiet_NaN();
-    cmd.velocity = 0.0;
-
-    const auto maybe_result = controller.SetPosition(cmd);
-    if (maybe_result) {
-      const auto r = maybe_result->values;
-      ::printf("%3d p/v/t=(%7.3f,%7.3f,%7.3f)  v/t/f=(%5.1f,%5.1f,%3d)   \r",
-             static_cast<int>(r.mode),
-             r.position,
-             r.velocity,
-             r.torque,
-             r.voltage,
-             r.temperature,
-             r.fault);
-      ::fflush(stdout);
-    }
-
-    // Sleep 20ms between iterations.  By default, when commanded over
-    // CAN, there is a watchdog which requires commands to be sent at
-    // least every 100ms or the controller will enter a latched fault
-    // state.
-    ::usleep(20000);
-  }
+ return 0;
 }

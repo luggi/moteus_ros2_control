@@ -21,12 +21,14 @@
 #include <functional>
 #include <optional>
 #include <ctime>
+#include <map>
 
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
+#include "moteus_transport.h"
 #include "rclcpp/clock.hpp"
 #include "rclcpp/duration.hpp"
 #include "rclcpp/macros.hpp"
@@ -171,6 +173,14 @@ namespace moteus_hardware_interface
         // Actuator CAN config
         std::vector<int> hw_actuator_can_channels_;
         std::vector<int> hw_actuator_can_ids_;
+
+        // moteus controllers
+        std::map<int, std::shared_ptr<mjbots::moteus::Controller>> controllers_;
+        std::map<int, mjbots::moteus::Query::Result> servo_data_;
+
+        // transport interface
+        std::shared_ptr<mjbots::moteus::Transport> transport_;
+
 
         // Actuator parameters
         std::vector<int> hw_actuator_axis_directions_;
