@@ -36,7 +36,12 @@ ament_auto_find_build_dependencies()
 # include moteus hardware libraries
 
 
-add_executable(moteus_hardware src/moteus_hardware_interface.cpp)
+#add_executable(moteus_hardware src/moteus_hardware_interface.cpp)
+
+# add compile directive for shared library
+add_library(moteus_hardware SHARED
+  src/moteus_hardware_interface.cpp
+)
 
 target_link_libraries(moteus_hardware PUBLIC
                       moteus::cpp
