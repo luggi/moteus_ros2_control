@@ -33,8 +33,8 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "robot_controller",
-            default_value="forward_position_controller",
-            choices=["forward_position_controller", "joint_trajectory_controller"],
+            default_value="gravcomp_controller",
+            choices=["gravcomp_controller"],
             description="Robot controller to start.",
         )
     )
@@ -100,7 +100,7 @@ def generate_launch_description():
     robot_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["forward_position_controller", "--controller-manager", "/controller_manager", "--controller-manager-timeout", "20"],
+        arguments=["gravcomp_controller", "--controller-manager", "/controller_manager", "--controller-manager-timeout", "20"],
     )
 
     # robot_controller_names = [robot_controller]
