@@ -7,5 +7,11 @@
       mjbots moteus hardware interface
     </description>
   </class>
-
+  <class name="moteus_hardware_interface/RobotController" 
+          type="moteus_hardware_interface::RobotController" 
+          base_class_type="controller_interface::ControllerInterface">
+    <description>
+      mjbots moteus controller interface
+    </description>
+  </class>
 </library>

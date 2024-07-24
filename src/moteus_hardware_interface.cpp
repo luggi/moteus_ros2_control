@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -20,6 +21,8 @@
 #include "moteus_protocol.h"
 #include "rclcpp/rclcpp.hpp"
 #include "moteus.h"
+
+#define TEST_MODE
 
 namespace moteus_hardware_interface
 {
@@ -72,8 +75,10 @@ namespace moteus_hardware_interface
 
         for (const hardware_interface::ComponentInfo &joint : info_.joints)
         {
+        
         // Set params for each joint
         hw_actuator_can_ids_.push_back(std::stoi(joint.parameters.at("can_id")));
+        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "can_id set to: %d", hw_actuator_can_ids_.back());
         hw_actuator_can_channels_.push_back(std::stoi(joint.parameters.at("can_channel")));
         hw_actuator_axis_directions_.push_back(std::stoi(joint.parameters.at("axis_direction")));
         hw_actuator_position_offsets_.push_back(std::stod(joint.parameters.at("position_offset")));
@@ -139,7 +144,8 @@ namespace moteus_hardware_interface
             }
         }
 
-                for (unsigned long i = 0; i < info_.joints.size(); i++)
+#ifndef TEST_MODE
+        for (unsigned long i = 0; i < info_.joints.size(); i++)
         {
             mjbots::moteus::Controller::Options options;
 
@@ -163,7 +169,7 @@ namespace moteus_hardware_interface
         // constructing our Controller instances.  We need to get access to
         // that in order to send commands simultaneously to multiple servos.
         transport_ = mjbots::moteus::Controller::MakeSingletonTransport({});
-        
+#endif
 
 
         RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Checking Connection to Actuator i...");
@@ -297,9 +303,10 @@ namespace moteus_hardware_interface
     {
         std::vector<mjbots::moteus::CanFdFrame> command_frames;
         std::vector<mjbots::moteus::CanFdFrame> replies;
-
+        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%f %f %f", hw_command_positions_[0], hw_command_velocities_[0], hw_command_efforts_[0]);
+        
         // write() -> Update the actuator states and assemble CAN frames
-        for (auto i = 0u; i < hw_state_positions_.size(); i++)
+        for (auto i = 0u; i < hw_command_positions_.size(); i++)
         {   
             // TODO: perform an implicit mode switch to velocity control if the position command is NaN.
             if (std::isnan(hw_command_positions_[i]) || std::isnan(hw_command_velocities_[i]) || std::isnan(hw_command_efforts_[i]) || std::isnan(hw_command_kps_[i]) || std::isnan(hw_command_kds_[i]))
@@ -307,7 +314,7 @@ namespace moteus_hardware_interface
                 RCLCPP_WARN(rclcpp::get_logger("MoteusHardwareInterface"), "NaN command for actuator");
                 continue;
             }
-
+#ifndef TEST_MODE
             mjbots::moteus::PositionMode::Command position_command;
 
 
@@ -316,12 +323,12 @@ namespace moteus_hardware_interface
             position_command.feedforward_torque = hw_command_efforts_[i];
 
             command_frames.push_back(controllers_[i]->MakePosition(position_command));
-
+#endif
             //hw_actuators_[i]->sendJointCommand(hw_command_positions_[i], hw_command_velocities_[i], hw_command_efforts_[i]);   
 
             // todo: send joint commands to moteus actuators   
         }
-
+#ifndef TEST_MODE
         transport_->BlockingCycle(&command_frames[0], command_frames.size(), &replies);
 
         for (const auto& frame : replies) {
@@ -330,12 +337,14 @@ namespace moteus_hardware_interface
 
         for (const auto& pair : servo_data_) {
             const auto r = pair.second;
-            hw_state_efforts_[pair.first] = r.torque;
-            hw_state_positions_[pair.first] = r.position;
-            hw_state_velocities_[pair.first] = r.velocity;
-            hw_state_temperatures_[pair.first] = r.temperature;
-            hw_state_states_[pair.first] = static_cast<int>(r.mode);
-        }
+            unsigned int index = (pair.first > 0)?pair.first-1:0;
+            hw_state_efforts_[index] = r.torque;
+            hw_state_positions_[index] = r.position;
+            hw_state_velocities_[index] = r.velocity;
+            hw_state_temperatures_[index] = r.temperature;
+            hw_state_states_[index] = static_cast<int>(r.mode);
+        }  
+#endif      
         
         return hardware_interface::return_type::OK;
     }

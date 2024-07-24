@@ -208,7 +208,7 @@ namespace moteus_hardware_interface
         std::vector<int> hw_state_errors_;
         std::vector<int> hw_state_states_;
         std::vector<double> hw_state_voltages_;
-
+        
         // Actuator commands
         std::vector<double> hw_command_positions_;
         std::vector<double> hw_command_velocities_;

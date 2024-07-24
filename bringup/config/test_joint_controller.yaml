@@ -1,0 +1,54 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    forward_position_controller:
+      type: forward_command_controller/ForwardCommandController
+
+    joint_trajectory_position_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    gravcomp_controller:
+      type: ros2_control_demo_example_7/RobotController
+
+forward_position_controller:
+  ros__parameters:
+    joints:
+      - joint_1
+      # - joint_2
+      # - joint_3
+    interface_name: position
+
+    wait_sec_between_publish: 5
+    publish_topic: "/forward_position_controller/commands"
+
+    goal_names: ["pos1", "pos2", "pos3", "pos4"]
+    pos1: [0.785, 0.785]
+    pos2: [0, 0]
+    pos3: [-0.785, -0.785]
+    pos4: [0, 0]
+
+joint_trajectory_position_controller:
+  ros__parameters:
+    joints:
+      - joint_1
+      - joint_2
+      - joint_3
+
+    command_interfaces:
+      - position
+
+    state_interfaces:
+      - position
+
+    action_monitor_rate: 20.0 # Defaults to 20
+
+    allow_partial_joints_goal: false # Defaults to false
+    open_loop_control: true
+    allow_integration_in_goal_trajectories: true
+    constraints:
+      stopped_velocity_tolerance: 0.01 # Defaults to 0.01
+      goal_time: 0.0 # Defaults to 0.0 (start immediately)
