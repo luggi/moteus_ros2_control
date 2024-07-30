@@ -274,15 +274,6 @@ namespace moteus_hardware_interface
     hardware_interface::CallbackReturn MoteusHardwareInterface::on_activate(
         const rclcpp_lifecycle::State & /*previous_state*/)
     {
-        // onActivate() -> Enable all actuators
-        for (auto i = 0u; i < hw_state_positions_.size(); i++)
-        {
-            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Setting Joint %d state to ARMED", i);
-            //hw_actuators_[i]->setState(ActuatorState::ARMED);
-        }
-        busy_wait_us(1000000); // wait for 1 second
-
-
         RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Successfully deactivated!");
 
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -334,10 +325,8 @@ namespace moteus_hardware_interface
         // write() -> Update the actuator states and assemble CAN frames
         for (auto i = 0u; i < hw_command_positions_.size(); i++)
         {   
-            // TODO: check if we need to explicitly switch between position/vel/effort commands
 #ifndef TEST_MODE
             mjbots::moteus::PositionMode::Command position_command;
-
 
             position_command.position = hw_command_positions_[i];
             position_command.velocity = hw_command_velocities_[i];
@@ -349,12 +338,9 @@ namespace moteus_hardware_interface
             }
 
             command_frames.push_back(controllers_[i]->MakePosition(position_command));
-#endif
-            //hw_actuators_[i]->sendJointCommand(hw_command_positions_[i], hw_command_velocities_[i], hw_command_efforts_[i]);   
 
-            // todo: send joint commands to moteus actuators   
+
         }
-#ifndef TEST_MODE
         transport_->BlockingCycle(&command_frames[0], command_frames.size(), &replies);
 
         for (const auto& frame : replies) {
