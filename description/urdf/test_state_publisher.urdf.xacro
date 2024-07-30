@@ -53,14 +53,10 @@
           <param name="gear_ratio">1.0</param>
           <param name="torque_constant">0.09729</param>
           
-          <param name="effort_max">1.0</param>
-          <param name="position_min">-1.0</param>
-          <param name="position_max">1.0</param>
-          <param name="velocity_max">1.0</param>
-          
-          <param name="kp_max">1.0</param>
-          <param name="kd_max">1.0</param>
-          <param name="ki_max">1.0</param>
+          <param name="power_max">100.0</param>
+          <param name="position_min">-3.1415</param>
+          <param name="position_max">3.1415</param>
+          <param name="velocity_max">3.1415</param>
 
           <param name="soft_start_duration_ms">0</param>
 

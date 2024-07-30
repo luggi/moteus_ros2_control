@@ -119,17 +119,22 @@ controller_interface::return_type RobotController::update(
 
   for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
   {
-    joint_position_command_interface_[i].get().set_value(NAN);
+    // set to nan for torque control mode
+    joint_position_command_interface_[i].get().set_value(std::numeric_limits<float>::quiet_NaN());
   }
   for (size_t i = 0; i < joint_velocity_command_interface_.size(); i++)
   {
-    joint_velocity_command_interface_[i].get().set_value(NAN);
+    // set to 0 for torque control mode
+    joint_velocity_command_interface_[i].get().set_value(0.0);
   }
 
   for (size_t i = 0; i < joint_effort_command_interface_.size(); i++)
   {
-    joint_effort_command_interface_[i].get().set_value(sin(current_pos)/10.0);
+    // command torque dependent on position
+    joint_effort_command_interface_[i].get().set_value(-sin(current_pos*2*M_PI));
   }
+
+  
 
   return controller_interface::return_type::OK;
 }

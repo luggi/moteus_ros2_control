@@ -193,10 +193,7 @@ namespace moteus_hardware_interface
         std::vector<double> hw_actuator_position_mins_; 
         std::vector<double> hw_actuator_position_maxs_;
         std::vector<double> hw_actuator_velocity_limits_;
-        std::vector<double> hw_actuator_effort_limits_;
-        std::vector<double> hw_actuator_kp_limits_;
-        std::vector<double> hw_actuator_kd_limits_;
-        std::vector<double> hw_actuator_ki_limits_;
+        std::vector<double> hw_actuator_power_limits_;
 
         // Actuator motor states
         std::vector<double> hw_state_positions_;

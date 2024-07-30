@@ -18,11 +18,12 @@
 
 
 #include "moteus_control/moteus_hardware_interface.hpp"
+#include "moteus_multiplex.h"
 #include "moteus_protocol.h"
 #include "rclcpp/rclcpp.hpp"
 #include "moteus.h"
 
-#define TEST_MODE
+//#define TEST_MODE
 
 namespace moteus_hardware_interface
 {
@@ -90,10 +91,7 @@ namespace moteus_hardware_interface
         hw_actuator_position_mins_.push_back(std::stod(joint.parameters.at("position_min")));
         hw_actuator_position_maxs_.push_back(std::stod(joint.parameters.at("position_max")));
         hw_actuator_velocity_limits_.push_back(std::stod(joint.parameters.at("velocity_max")));
-        hw_actuator_effort_limits_.push_back(std::stod(joint.parameters.at("effort_max")));
-        hw_actuator_kp_limits_.push_back(std::stod(joint.parameters.at("kp_max")));
-        hw_actuator_kd_limits_.push_back(std::stod(joint.parameters.at("kd_max")));
-        hw_actuator_ki_limits_.push_back(std::stod(joint.parameters.at("ki_max")));       
+        hw_actuator_power_limits_.push_back(std::stod(joint.parameters.at("power_max")));
         }
 
         /**
@@ -150,13 +148,38 @@ namespace moteus_hardware_interface
             mjbots::moteus::Controller::Options options;
 
             options.id = hw_actuator_can_ids_[i];
+            options.position_format.position = mjbots::moteus::kIgnore;
+            options.position_format.velocity = mjbots::moteus::kIgnore;
+            options.position_format.feedforward_torque = mjbots::moteus::kFloat;
+            options.position_format.kp_scale = mjbots::moteus::kInt8;
+            options.position_format.kd_scale = mjbots::moteus::kInt8;
+    
+
             controllers_[i] = std::make_shared<mjbots::moteus::Controller>(options);
         }
 
         // Stop everything to clear faults.
         for (const auto& pair : controllers_) {
-            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Sending Actuator at Joint %d to idle...", pair.second->options().id);
+            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Sending Actuator at Joint %d to idle...", pair.first);
             pair.second->SetStop();
+
+            pair.second->DiagnosticWrite("tel stop\n");
+            pair.second->DiagnosticFlush();
+            
+            std::ostringstream ostr;
+            ostr << "conf set servopos.position_min " << (hw_actuator_position_mins_[pair.first] / (2.0 * M_PI));
+            pair.second->DiagnosticCommand(ostr.str());
+            ostr.clear();
+            ostr << "conf set servopos.position_max " << (hw_actuator_position_maxs_[pair.first] / (2.0 * M_PI));
+            pair.second->DiagnosticCommand(ostr.str());
+            ostr.clear();
+            ostr << "conf set servo.max_power_W " << (hw_actuator_power_limits_[pair.first]);
+            pair.second->DiagnosticCommand(ostr.str());
+            ostr.clear();
+            ostr << "conf set servo.max_velocity " << (hw_actuator_velocity_limits_[pair.first] / (2.0 * M_PI));
+            pair.second->DiagnosticCommand(ostr.str());
+            ostr.clear();
+
         }
         
         // todo:
@@ -303,17 +326,15 @@ namespace moteus_hardware_interface
     {
         std::vector<mjbots::moteus::CanFdFrame> command_frames;
         std::vector<mjbots::moteus::CanFdFrame> replies;
-        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%f %f %f", hw_command_positions_[0], hw_command_velocities_[0], hw_command_efforts_[0]);
+        //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%f %f %f", hw_command_positions_[0], hw_command_velocities_[0], hw_command_efforts_[0]);
         
+        command_frames.clear();
+        replies.clear();
+
         // write() -> Update the actuator states and assemble CAN frames
         for (auto i = 0u; i < hw_command_positions_.size(); i++)
         {   
-            // TODO: perform an implicit mode switch to velocity control if the position command is NaN.
-            if (std::isnan(hw_command_positions_[i]) || std::isnan(hw_command_velocities_[i]) || std::isnan(hw_command_efforts_[i]) || std::isnan(hw_command_kps_[i]) || std::isnan(hw_command_kds_[i]))
-            {
-                RCLCPP_WARN(rclcpp::get_logger("MoteusHardwareInterface"), "NaN command for actuator");
-                continue;
-            }
+            // TODO: check if we need to explicitly switch between position/vel/effort commands
 #ifndef TEST_MODE
             mjbots::moteus::PositionMode::Command position_command;
 
@@ -321,6 +342,11 @@ namespace moteus_hardware_interface
             position_command.position = hw_command_positions_[i];
             position_command.velocity = hw_command_velocities_[i];
             position_command.feedforward_torque = hw_command_efforts_[i];
+            if (isnanf(hw_command_positions_[i]))
+            {
+                position_command.kd_scale = 0.0f;
+                position_command.kp_scale = 0.0f;
+            }
 
             command_frames.push_back(controllers_[i]->MakePosition(position_command));
 #endif
@@ -345,7 +371,6 @@ namespace moteus_hardware_interface
             hw_state_states_[index] = static_cast<int>(r.mode);
         }  
 #endif      
-        
         return hardware_interface::return_type::OK;
     }
 
