@@ -29,6 +29,7 @@ set(CONTROLLER_INCLUDE_DEPENDS
   controller_interface
   realtime_tools
   trajectory_msgs
+  pinocchio
 )
 
 # find dependencies
@@ -63,6 +64,7 @@ target_link_libraries(moteus_hardware_interface PUBLIC
                       rclcpp_lifecycle::rclcpp_lifecycle
                       controller_interface::controller_interface
                       realtime_tools::realtime_tools
+                      pinocchio::pinocchio
                       )
 
 target_include_directories(moteus_hardware_interface PUBLIC

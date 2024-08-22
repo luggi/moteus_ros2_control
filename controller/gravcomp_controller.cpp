@@ -29,6 +29,51 @@ using config_type = controller_interface::interface_configuration_type;
 
 namespace moteus_hardware_interface
 {
+
+template <typename Scalar, int Options,
+  template <typename, int> class JointCollectionTpl>
+void BuildModel(pinocchio::ModelTpl<Scalar, Options, JointCollectionTpl>* model) {
+  using namespace pinocchio;
+
+  using M = Model;
+  using JC = JointCollectionTpl<Scalar, Options>;
+  using CV = typename JC::JointModelRX::ConfigVector_t;
+  using TV = typename JC::JointModelRX::TangentVector_t;
+
+  M::JointIndex idx = 0;
+
+  constexpr double kFudge = 0.95;
+
+  SE3 Tlink (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.15));
+  Inertia Ilink1(kFudge * 0.29, Tlink.translation(),
+                 Inertia::Matrix3::Identity() * 0.001);
+  Inertia Ilink2(kFudge * 0.28, Tlink.translation(),
+                 Inertia::Matrix3::Identity() * 0.001);
+
+  CV qmin = CV::Constant(-4);
+  CV qmax = CV::Constant(4);
+  TV vmax = CV::Constant(10);
+  TV taumax = CV::Constant(10);
+
+  idx = model->addJoint(idx, typename JC::JointModelRY(), Tlink,
+                        "link1_joint", taumax, vmax, qmin, qmax);
+  model->appendBodyToJoint(idx, Ilink1);
+  model->addJointFrame(idx);
+  model->addBodyFrame("link1_body", idx);
+
+  idx = model->addJoint(idx, typename JC::JointModelRY(), Tlink,
+                        "link2_joint", taumax, vmax, qmin, qmax);
+  model->appendBodyToJoint(idx, Ilink2);
+  model->addJointFrame(idx);
+  model->addBodyFrame("link2_body", idx);
+}
+
+double WrapAround0(double v) {
+  const auto v1 = std::fmod(v, 1.0);
+  const auto v2 = (v1 < 0.0) ? (v1 + 1.0) : v1;
+  return v2 > 0.5 ? (v2 - 1.0) : v2;
+}
+
 RobotController::RobotController() : controller_interface::ControllerInterface() {}
 
 controller_interface::CallbackReturn RobotController::on_init()
@@ -39,6 +84,13 @@ controller_interface::CallbackReturn RobotController::on_init()
     auto_declare<std::vector<std::string>>("command_interfaces", command_interface_types_);
   state_interface_types_ =
     auto_declare<std::vector<std::string>>("state_interfaces", state_interface_types_);
+
+  BuildModel(&model_);
+  data_ = pinocchio::Data(model_);
+
+  q_ = Eigen::VectorXd::Zero(model_.nv);
+  v_ = Eigen::VectorXd::Zero(model_.nv);
+  a_ = Eigen::VectorXd::Zero(model_.nv);
 
   return CallbackReturn::SUCCESS;
 }
@@ -110,11 +162,22 @@ controller_interface::CallbackReturn RobotController::on_activate(const rclcpp_l
 controller_interface::return_type RobotController::update(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  double current_pos;
+  double current_pos[2] = {0};
 
-  for (size_t i = 0; i < joint_position_state_interface_.size(); i++)
+  if (joint_position_state_interface_.size() >= 3)
   {
-    current_pos = joint_position_state_interface_[i].get().get_value();
+      current_pos[0] = joint_position_state_interface_[1].get().get_value();
+      current_pos[1] = joint_position_state_interface_[2].get().get_value();
+  }
+  else
+  {
+    return controller_interface::return_type::OK;
+  }
+
+
+  for (size_t i = 1; i < joint_position_state_interface_.size(); i++)
+  {
+    current_pos[i] = joint_position_state_interface_[i].get().get_value();
   }
 
   for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
@@ -128,13 +191,19 @@ controller_interface::return_type RobotController::update(
     joint_velocity_command_interface_[i].get().set_value(0.0);
   }
 
-  for (size_t i = 0; i < joint_effort_command_interface_.size(); i++)
-  {
+  //for (size_t i = 0; i < joint_effort_command_interface_.size(); i++)
+  //{
     // command torque dependent on position
-    joint_effort_command_interface_[i].get().set_value(-sin(current_pos*2*M_PI));
-  }
+  //  joint_effort_command_interface_[i].get().set_value(-sin(current_pos*2*M_PI));
+  //}
 
-  
+  q_(0) = WrapAround0(current_pos[0] + 0.5) * 2 * M_PI * 0.2;
+  q_(1) = WrapAround0(current_pos[1]) * 2 * M_PI;
+
+  const Eigen::VectorXd& tau = pinocchio::rnea(model_, data_, q_, v_, a_);
+
+  joint_effort_command_interface_[1].get().set_value(tau(0));
+  joint_effort_command_interface_[2].get().set_value(tau(1));  
 
   return controller_interface::return_type::OK;
 }

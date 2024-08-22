@@ -23,7 +23,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "moteus.h"
 
-//#define TEST_MODE
+#define TEST_MODE
 
 namespace moteus_hardware_interface
 {

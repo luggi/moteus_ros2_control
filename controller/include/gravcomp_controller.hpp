@@ -37,6 +37,10 @@
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "trajectory_msgs/msg/joint_trajectory_point.hpp"
 
+#include "pinocchio/algorithm/joint-configuration.hpp"
+#include "pinocchio/algorithm/rnea.hpp"
+#include "pinocchio/parsers/sample-models.hpp"
+
 namespace moteus_hardware_interface
 {
 class RobotController : public controller_interface::ControllerInterface
@@ -86,6 +90,12 @@ protected:
   std::vector<std::string> joint_names_;
   std::vector<std::string> command_interface_types_;
   std::vector<std::string> state_interface_types_;
+
+  pinocchio::Model model_;
+  pinocchio::Data data_;
+  Eigen::VectorXd q_;
+  Eigen::VectorXd v_;
+  Eigen::VectorXd a_;
 
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_command_subscriber_;
   realtime_tools::RealtimeBuffer<std::shared_ptr<trajectory_msgs::msg::JointTrajectory>>
