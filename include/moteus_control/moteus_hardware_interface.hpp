@@ -177,6 +177,8 @@ namespace moteus_hardware_interface
         // moteus controllers
         std::map<int, std::shared_ptr<mjbots::moteus::Controller>> controllers_;
         std::map<int, mjbots::moteus::Query::Result> servo_data_;
+        std::vector<mjbots::moteus::CanFdFrame> command_frames_;
+        std::vector<mjbots::moteus::CanFdFrame> replies_;
 
         // transport interface
         std::shared_ptr<mjbots::moteus::Transport> transport_;

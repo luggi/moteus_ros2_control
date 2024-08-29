@@ -23,7 +23,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "moteus.h"
 
-#define TEST_MODE
+//#define TEST_MODE
 
 namespace moteus_hardware_interface
 {
@@ -160,25 +160,36 @@ namespace moteus_hardware_interface
 
         // Stop everything to clear faults.
         for (const auto& pair : controllers_) {
-            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Sending Actuator at Joint %d to idle...", pair.first);
-            pair.second->SetStop();
+            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Sending Actuator at controller %d id: %d to idle...", pair.first, pair.second->options().id);
+            int fault = pair.second->SetStop()->values.fault;
+            //int mode = pair.second.get()
 
+            if (fault != 0)
+            {
+                RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Controller with id: %d reported fault: %d", pair.second->options().id, fault);
+
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+
+            sleep(1);
+            pair.second->SetStop();
+            sleep(1);
             pair.second->DiagnosticWrite("tel stop\n");
             pair.second->DiagnosticFlush();
             
-            std::ostringstream ostr;
-            ostr << "conf set servopos.position_min " << (hw_actuator_position_mins_[pair.first] / (2.0 * M_PI));
-            pair.second->DiagnosticCommand(ostr.str());
-            ostr.clear();
-            ostr << "conf set servopos.position_max " << (hw_actuator_position_maxs_[pair.first] / (2.0 * M_PI));
-            pair.second->DiagnosticCommand(ostr.str());
-            ostr.clear();
-            ostr << "conf set servo.max_power_W " << (hw_actuator_power_limits_[pair.first]);
-            pair.second->DiagnosticCommand(ostr.str());
-            ostr.clear();
-            ostr << "conf set servo.max_velocity " << (hw_actuator_velocity_limits_[pair.first] / (2.0 * M_PI));
-            pair.second->DiagnosticCommand(ostr.str());
-            ostr.clear();
+            // std::ostringstream ostr;
+            // ostr << "conf set servopos.position_min " << (hw_actuator_position_mins_[pair.first] / (2.0 * M_PI * hw_actuator_gear_ratios_[pair.first]));
+            // pair.second->DiagnosticCommand(ostr.str());
+            // ostr.clear();
+            // ostr << "conf set servopos.position_max " << (hw_actuator_position_maxs_[pair.first] / (2.0 * M_PI * hw_actuator_gear_ratios_[pair.first]));
+            // pair.second->DiagnosticCommand(ostr.str());
+            // ostr.clear();
+            //ostr << "conf set servo.max_power_W " << (hw_actuator_power_limits_[pair.first]);
+            //pair.second->DiagnosticCommand(ostr.str());
+            //ostr.clear();
+            //ostr << "conf set servo.max_velocity " << (hw_actuator_velocity_limits_[pair.first] / (2.0 * M_PI * hw_actuator_gear_ratios_[pair.first]));
+            //pair.second->DiagnosticCommand(ostr.str());
+            //ostr.clear();
 
         }
         
@@ -193,9 +204,6 @@ namespace moteus_hardware_interface
         // that in order to send commands simultaneously to multiple servos.
         transport_ = mjbots::moteus::Controller::MakeSingletonTransport({});
 #endif
-
-
-        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Checking Connection to Actuator i...");
 
         RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "MoteusHardwareInterface successfully initialized!");
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -237,7 +245,7 @@ namespace moteus_hardware_interface
             hw_state_positions_[i] = 0;
             hw_state_velocities_[i] = 0;
             hw_state_efforts_[i] = 0;
-            hw_command_positions_[i] = 0;
+            hw_command_positions_[i] = std::numeric_limits<double>::quiet_NaN();
             hw_command_velocities_[i] = 0;
             hw_command_efforts_[i] = 0;
             hw_command_kps_[i] = 0;
@@ -274,10 +282,9 @@ namespace moteus_hardware_interface
     hardware_interface::CallbackReturn MoteusHardwareInterface::on_activate(
         const rclcpp_lifecycle::State & /*previous_state*/)
     {
-        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Successfully deactivated!");
+        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "Successfully activated!");
 
         return hardware_interface::CallbackReturn::SUCCESS;
-        return hardware_interface::CallbackReturn::FAILURE;
     }
 
     hardware_interface::CallbackReturn MoteusHardwareInterface::on_cleanup(
@@ -315,48 +322,62 @@ namespace moteus_hardware_interface
     hardware_interface::return_type MoteusHardwareInterface::write(
         const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        std::vector<mjbots::moteus::CanFdFrame> command_frames;
-        std::vector<mjbots::moteus::CanFdFrame> replies;
-        //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%f %f %f", hw_command_positions_[0], hw_command_velocities_[0], hw_command_efforts_[0]);
         
-        command_frames.clear();
-        replies.clear();
+        //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%f %f %f", hw_command_efforts_[0], hw_command_efforts_[1], hw_command_efforts_[2]);
+        //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "controller update %zu", hw_command_positions_.size());
+        command_frames_.clear();
+        replies_.clear();
 
+#ifndef TEST_MODE
         // write() -> Update the actuator states and assemble CAN frames
         for (auto i = 0u; i < hw_command_positions_.size(); i++)
         {   
-#ifndef TEST_MODE
+
             mjbots::moteus::PositionMode::Command position_command;
 
-            position_command.position = hw_command_positions_[i];
-            position_command.velocity = hw_command_velocities_[i];
-            position_command.feedforward_torque = hw_command_efforts_[i];
+            position_command.position = hw_command_positions_[i]/(2*M_PI*hw_actuator_gear_ratios_[i]);
+            position_command.velocity = hw_command_velocities_[i]/(2*M_PI*hw_actuator_gear_ratios_[i]);
+            position_command.feedforward_torque = hw_command_efforts_[i]*hw_actuator_gear_ratios_[i];
             if (isnanf(hw_command_positions_[i]))
             {
                 position_command.kd_scale = 0.0f;
                 position_command.kp_scale = 0.0f;
             }
 
-            command_frames.push_back(controllers_[i]->MakePosition(position_command));
-
-
+            //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "push back position cmd %d, id: %d %f %f %f", i, controllers_[i]->options().id,  position_command.position, position_command.velocity, position_command.feedforward_torque);
+            command_frames_.push_back(controllers_[i]->MakePosition(position_command));
         }
-        transport_->BlockingCycle(&command_frames[0], command_frames.size(), &replies);
+        
+        transport_->BlockingCycle(&command_frames_[0], command_frames_.size(), &replies_);
 
-        for (const auto& frame : replies) {
+        servo_data_.clear();
+
+        RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "got %zu replies", replies_.size());
+
+        for (const auto& frame : replies_) {
             servo_data_[frame.source] = mjbots::moteus::Query::Parse(frame.data, frame.size);
+            //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "parsing reply %d", frame.source);
         }
 
+        
         for (const auto& pair : servo_data_) {
             const auto r = pair.second;
             unsigned int index = (pair.first > 0)?pair.first-1:0;
-            hw_state_efforts_[index] = r.torque;
-            hw_state_positions_[index] = r.position;
-            hw_state_velocities_[index] = r.velocity;
+            hw_state_efforts_[index] = r.torque/hw_actuator_gear_ratios_[index];
+            hw_state_positions_[index] = r.position*hw_actuator_gear_ratios_[index]*2*M_PI;
+            hw_state_velocities_[index] = r.velocity*hw_actuator_gear_ratios_[index]*2*M_PI;
             hw_state_temperatures_[index] = r.temperature;
             hw_state_states_[index] = static_cast<int>(r.mode);
+            //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "index %d update", index);
         }  
-#endif      
+#endif    
+
+#ifdef TEST_MODE
+        hw_state_positions_[1] = 1*hw_actuator_gear_ratios_[1]*2*M_PI;
+        hw_state_positions_[2] = 0.0;
+        hw_state_positions_[3] = 0.0;
+#endif
+
         return hardware_interface::return_type::OK;
     }
 
@@ -418,7 +439,7 @@ namespace moteus_hardware_interface
             // hw_state_efforts_[i] = hw_actuators_[i]->getEffort();
             // hw_state_voltages_[i] = hw_actuators_[i]->getVoltage();
             // hw_state_temperatures_[i] = hw_actuators_[i]->getTemperature();
-            // hw_state_errors_[i] = hw_actuators_[i]->getErrorReason();
+            // hw_state_errors_[i] = hw_actuators_[i]->getError#ifndef TEST_MODEReason();
             // hw_state_states_[i] = hw_actuators_[i]->getState();
         }
     }

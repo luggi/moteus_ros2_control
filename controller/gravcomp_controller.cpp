@@ -44,24 +44,25 @@ void BuildModel(pinocchio::ModelTpl<Scalar, Options, JointCollectionTpl>* model)
 
   constexpr double kFudge = 0.95;
 
-  SE3 Tlink (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.15));
-  Inertia Ilink1(kFudge * 0.29, Tlink.translation(),
+  SE3 Tlink1 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.32));
+  SE3 Tlink2 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.205));
+  Inertia Ilink1(kFudge * 1, Tlink1.translation(),
                  Inertia::Matrix3::Identity() * 0.001);
-  Inertia Ilink2(kFudge * 0.28, Tlink.translation(),
+  Inertia Ilink2(kFudge * 0.5, Tlink2.translation(),
                  Inertia::Matrix3::Identity() * 0.001);
 
-  CV qmin = CV::Constant(-4);
-  CV qmax = CV::Constant(4);
-  TV vmax = CV::Constant(10);
-  TV taumax = CV::Constant(10);
+  CV qmin = CV::Constant(-5);
+  CV qmax = CV::Constant(5);
+  TV vmax = CV::Constant(4);
+  TV taumax = CV::Constant(4);
 
-  idx = model->addJoint(idx, typename JC::JointModelRY(), Tlink,
+  idx = model->addJoint(idx, typename JC::JointModelRY(), Tlink1,
                         "link1_joint", taumax, vmax, qmin, qmax);
   model->appendBodyToJoint(idx, Ilink1);
   model->addJointFrame(idx);
   model->addBodyFrame("link1_body", idx);
 
-  idx = model->addJoint(idx, typename JC::JointModelRY(), Tlink,
+  idx = model->addJoint(idx, typename JC::JointModelRY(), Tlink2,
                         "link2_joint", taumax, vmax, qmin, qmax);
   model->appendBodyToJoint(idx, Ilink2);
   model->addJointFrame(idx);
@@ -91,6 +92,7 @@ controller_interface::CallbackReturn RobotController::on_init()
   q_ = Eigen::VectorXd::Zero(model_.nv);
   v_ = Eigen::VectorXd::Zero(model_.nv);
   a_ = Eigen::VectorXd::Zero(model_.nv);
+
 
   return CallbackReturn::SUCCESS;
 }
@@ -156,13 +158,17 @@ controller_interface::CallbackReturn RobotController::on_activate(const rclcpp_l
     state_interface_map_[interface.get_interface_name()]->push_back(interface);
   }
 
+  RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "controller activated");
+
   return CallbackReturn::SUCCESS;
 }
 
 controller_interface::return_type RobotController::update(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  double current_pos[2] = {0};
+  double current_pos[3] = {0};
+
+  //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "controller update %zu", joint_position_state_interface_.size());
 
   if (joint_position_state_interface_.size() >= 3)
   {
@@ -171,13 +177,14 @@ controller_interface::return_type RobotController::update(
   }
   else
   {
-    return controller_interface::return_type::OK;
+    return controller_interface::return_type::ERROR;
   }
 
 
   for (size_t i = 1; i < joint_position_state_interface_.size(); i++)
   {
-    current_pos[i] = joint_position_state_interface_[i].get().get_value();
+    current_pos[i-1] = joint_position_state_interface_[i].get().get_value();
+    //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%zu p%.2f", i, current_pos[i]);
   }
 
   for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
@@ -197,13 +204,15 @@ controller_interface::return_type RobotController::update(
   //  joint_effort_command_interface_[i].get().set_value(-sin(current_pos*2*M_PI));
   //}
 
-  q_(0) = WrapAround0(current_pos[0] + 0.5) * 2 * M_PI * 0.2;
-  q_(1) = WrapAround0(current_pos[1]) * 2 * M_PI;
+  q_(0) = WrapAround0(current_pos[0]);
+  q_(1) = WrapAround0(current_pos[1]);
 
   const Eigen::VectorXd& tau = pinocchio::rnea(model_, data_, q_, v_, a_);
 
-  joint_effort_command_interface_[1].get().set_value(tau(0));
-  joint_effort_command_interface_[2].get().set_value(tau(1));  
+  //joint_effort_command_interface_[1].get().set_value(tau(0));
+  //joint_effort_command_interface_[2].get().set_value(tau(1));  
+
+  //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "t%.2f t%.2f", tau(0), tau(1));
 
   return controller_interface::return_type::OK;
 }

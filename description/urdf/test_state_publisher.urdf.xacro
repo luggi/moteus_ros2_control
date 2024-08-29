@@ -29,11 +29,77 @@
     </visual>
   </link>
 
+  <link name="link_2">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="3.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial> -->
+    <visual name="Cube">
+      <origin xyz="1 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.24 0.14 0.22"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="link_3">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="3.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial> -->
+    <visual name="Cube">
+      <origin xyz="1 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.24 0.14 0.22"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="link_4">
+    <!-- <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="3.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial> -->
+    <visual name="Cube">
+      <origin xyz="1 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.24 0.14 0.22"/>
+      </geometry>
+    </visual>
+  </link>
+
   <joint name="joint_1" type="revolute">
     <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
     <parent link="base_link"/>
     <child link="link_1"/>
     <axis xyz="0 0 1.0"/>
+    <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
+  </joint>
+
+  <joint name="joint_2" type="revolute">
+    <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
+    <parent link="link_1"/>
+    <child link="link_2"/>
+    <axis xyz="0 1.0 0"/>
+    <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
+  </joint>
+
+  <joint name="joint_3" type="revolute">
+    <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
+    <parent link="link_2"/>
+    <child link="link_3"/>
+    <axis xyz="0 1.0 0"/>
+    <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
+  </joint>
+
+  <joint name="joint_4" type="revolute">
+    <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
+    <parent link="link_3"/>
+    <child link="link_4"/>
+    <axis xyz="0 1.0 0"/>
     <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
   </joint>
 
@@ -50,12 +116,12 @@
           
           <param name="axis_direction">-1</param>
           <param name="position_offset">0.0</param>
-          <param name="gear_ratio">1.0</param>
+          <param name="gear_ratio">0.306569</param>
           <param name="torque_constant">0.09729</param>
           
           <param name="power_max">100.0</param>
-          <param name="position_min">-3.1415</param>
-          <param name="position_max">3.1415</param>
+          <param name="position_min">-9.5</param>
+          <param name="position_max">9.5</param>
           <param name="velocity_max">3.1415</param>
 
           <param name="soft_start_duration_ms">0</param>
@@ -70,21 +136,21 @@
           
       </joint>
 
-      <!-- <joint name="joint_2">
-          <param name="can_protocol">odrive</param>
+      <joint name="joint_2">
+          <param name="can_protocol">moteus</param>
 
           <param name="can_id">2</param>
           <param name="can_channel">1</param>
           
           <param name="axis_direction">-1</param>
           <param name="position_offset">0.0</param>
-          <param name="gear_ratio">1.0</param>
+          <param name="gear_ratio">0.2</param>
           <param name="torque_constant">0.09729</param>
           
-          <param name="effort_max">1.0</param>
-          <param name="position_min">-1.0</param>
-          <param name="position_max">1.0</param>
-          <param name="velocity_max">1.0</param>
+          <param name="power_max">100.0</param>
+          <param name="position_min">-9.5</param>
+          <param name="position_max">9.5</param>
+          <param name="velocity_max">3.1415</param>
           
           <param name="kp_max">1.0</param>
           <param name="kd_max">1.0</param>
@@ -105,20 +171,20 @@
       </joint>
 
       <joint name="joint_3">
-          <param name="can_protocol">odrive</param>
+          <param name="can_protocol">moteus</param>
 
           <param name="can_id">3</param>
           <param name="can_channel">1</param>
           
           <param name="axis_direction">-1</param>
           <param name="position_offset">0.0</param>
-          <param name="gear_ratio">1.0</param>
+          <param name="gear_ratio">0.2</param>
           <param name="torque_constant">0.09729</param>
           
-          <param name="effort_max">1.0</param>
-          <param name="position_min">-1.0</param>
-          <param name="position_max">1.0</param>
-          <param name="velocity_max">1.0</param>
+          <param name="power_max">100.0</param>
+          <param name="position_min">-11.3</param>
+          <param name="position_max">11.3</param>
+          <param name="velocity_max">3.1415</param>
           
           <param name="kp_max">1.0</param>
           <param name="kd_max">1.0</param>
@@ -136,7 +202,41 @@
           <state_interface name="position"/>
           <state_interface name="velocity"/>
           <state_interface name="effort"/>
-      </joint> -->
+      </joint>
+
+      <joint name="joint_4">
+          <param name="can_protocol">moteus</param>
+
+          <param name="can_id">4</param>
+          <param name="can_channel">1</param>
+          
+          <param name="axis_direction">-1</param>
+          <param name="position_offset">0.0</param>
+          <param name="gear_ratio">0.2</param>
+          <param name="torque_constant">0.09729</param>
+          
+          <param name="power_max">100.0</param>
+          <param name="position_min">-12.5</param>
+          <param name="position_max">12.5</param>
+          <param name="velocity_max">3.1415</param>
+          
+          <param name="kp_max">1.0</param>
+          <param name="kd_max">1.0</param>
+          <param name="ki_max">1.0</param>
+
+          <param name="soft_start_duration_ms">0</param>
+
+          <command_interface name="position"/>
+          <command_interface name="velocity"/>
+          <command_interface name="effort"/>
+          <command_interface name="kp"/>
+          <command_interface name="kd"/>
+          <command_interface name="ki"/>
+
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+          <state_interface name="effort"/>
+      </joint>
   </ros2_control>
 
 </robot>
