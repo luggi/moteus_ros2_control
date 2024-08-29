@@ -172,7 +172,7 @@ namespace moteus_hardware_interface
 
         // Actuator CAN config
         std::vector<int> hw_actuator_can_channels_;
-        std::vector<int> hw_actuator_can_ids_;
+        std::vector<unsigned int> hw_actuator_can_ids_;
 
         // moteus controllers
         std::map<int, std::shared_ptr<mjbots::moteus::Controller>> controllers_;

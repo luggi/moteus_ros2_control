@@ -46,9 +46,12 @@ void BuildModel(pinocchio::ModelTpl<Scalar, Options, JointCollectionTpl>* model)
 
   SE3 Tlink1 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.32));
   SE3 Tlink2 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.205));
-  Inertia Ilink1(kFudge * 1, Tlink1.translation(),
+  SE3 Tlink3 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.15));
+  Inertia Ilink1(kFudge * 0.6, Tlink1.translation(),
                  Inertia::Matrix3::Identity() * 0.001);
-  Inertia Ilink2(kFudge * 0.5, Tlink2.translation(),
+  Inertia Ilink2(kFudge * 0.2, Tlink2.translation(),
+                 Inertia::Matrix3::Identity() * 0.001);
+  Inertia Ilink3(kFudge * 0.2, Tlink2.translation(),
                  Inertia::Matrix3::Identity() * 0.001);
 
   CV qmin = CV::Constant(-5);
@@ -67,6 +70,12 @@ void BuildModel(pinocchio::ModelTpl<Scalar, Options, JointCollectionTpl>* model)
   model->appendBodyToJoint(idx, Ilink2);
   model->addJointFrame(idx);
   model->addBodyFrame("link2_body", idx);
+
+  idx = model->addJoint(idx, typename JC::JointModelRY(), Tlink3,
+                        "link3_joint", taumax, vmax, qmin, qmax);
+  model->appendBodyToJoint(idx, Ilink3);
+  model->addJointFrame(idx);
+  model->addBodyFrame("link3_body", idx);
 }
 
 double WrapAround0(double v) {
@@ -204,15 +213,15 @@ controller_interface::return_type RobotController::update(
   //  joint_effort_command_interface_[i].get().set_value(-sin(current_pos*2*M_PI));
   //}
 
-  q_(0) = WrapAround0(current_pos[0]);
-  q_(1) = WrapAround0(current_pos[1]);
+  q_(0) = current_pos[0];
+  q_(1) = current_pos[1];
 
   const Eigen::VectorXd& tau = pinocchio::rnea(model_, data_, q_, v_, a_);
 
-  //joint_effort_command_interface_[1].get().set_value(tau(0));
-  //joint_effort_command_interface_[2].get().set_value(tau(1));  
+  joint_effort_command_interface_[1].get().set_value(tau(0));
+  joint_effort_command_interface_[2].get().set_value(tau(1));  
 
-  //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "t%.2f t%.2f", tau(0), tau(1));
+  RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "p%.2f p%.2f t%.2f t%.2f", q_(0), q_(1),tau(0), tau(1));
 
   return controller_interface::return_type::OK;
 }
