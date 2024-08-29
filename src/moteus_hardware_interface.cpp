@@ -344,7 +344,7 @@ namespace moteus_hardware_interface
                 position_command.kp_scale = 0.0f;
             }
 
-            //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "push back position cmd %d, id: %d %f %f %f", i, controllers_[i]->options().id,  position_command.position, position_command.velocity, position_command.feedforward_torque);
+            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "push back position cmd %d, id: %d %f %f %f", i, controllers_[i]->options().id,  position_command.position, position_command.velocity, position_command.feedforward_torque);
             command_frames_.push_back(controllers_[i]->MakePosition(position_command));
         }
         
@@ -359,16 +359,16 @@ namespace moteus_hardware_interface
             //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "parsing reply %d", frame.source);
         }
 
-        
+        int index = 0;
         for (const auto& pair : servo_data_) {
             const auto r = pair.second;
-            unsigned int index = (pair.first > 0)?pair.first-1:0;
             hw_state_efforts_[index] = r.torque/hw_actuator_gear_ratios_[index];
             hw_state_positions_[index] = r.position*hw_actuator_gear_ratios_[index]*2*M_PI;
             hw_state_velocities_[index] = r.velocity*hw_actuator_gear_ratios_[index]*2*M_PI;
             hw_state_temperatures_[index] = r.temperature;
             hw_state_states_[index] = static_cast<int>(r.mode);
-            //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "index %d update", index);
+            RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "index %d update", index);
+            index++;
         }  
 #endif    
 
