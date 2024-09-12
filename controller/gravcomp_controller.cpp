@@ -46,12 +46,12 @@ void BuildModel(pinocchio::ModelTpl<Scalar, Options, JointCollectionTpl>* model)
 
   SE3 Tlink1 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.32));
   SE3 Tlink2 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.205));
-  SE3 Tlink3 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.15));
-  Inertia Ilink1(kFudge * 0.6, Tlink1.translation(),
+  SE3 Tlink3 (SE3::Matrix3::Identity(), SE3::Vector3(0, 0, 0.08));
+  Inertia Ilink1(kFudge * 0.60, Tlink1.translation(),
                  Inertia::Matrix3::Identity() * 0.001);
-  Inertia Ilink2(kFudge * 0.2, Tlink2.translation(),
+  Inertia Ilink2(kFudge * 0.24, Tlink2.translation(),
                  Inertia::Matrix3::Identity() * 0.001);
-  Inertia Ilink3(kFudge * 0.2, Tlink2.translation(),
+  Inertia Ilink3(kFudge * 0.06, Tlink2.translation(),
                  Inertia::Matrix3::Identity() * 0.001);
 
   CV qmin = CV::Constant(-5);
@@ -179,10 +179,11 @@ controller_interface::return_type RobotController::update(
 
   //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "controller update %zu", joint_position_state_interface_.size());
 
-  if (joint_position_state_interface_.size() >= 3)
+  if (joint_position_state_interface_.size() >= 4)
   {
-      current_pos[0] = joint_position_state_interface_[1].get().get_value();
-      current_pos[1] = joint_position_state_interface_[2].get().get_value();
+      current_pos[0] = joint_position_state_interface_[1].get().get_value(); //axis2
+      current_pos[1] = joint_position_state_interface_[2].get().get_value(); //axis3
+      current_pos[2] = -joint_position_state_interface_[3].get().get_value()-current_pos[1]; //axis4
   }
   else
   {
@@ -190,11 +191,11 @@ controller_interface::return_type RobotController::update(
   }
 
 
-  for (size_t i = 1; i < joint_position_state_interface_.size(); i++)
-  {
-    current_pos[i-1] = joint_position_state_interface_[i].get().get_value();
-    //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%zu p%.2f", i, current_pos[i]);
-  }
+  // for (size_t i = 1; i < joint_position_state_interface_.size(); i++)
+  // {
+  //   current_pos[i-1] = joint_position_state_interface_[i].get().get_value();
+  //   //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "%zu p%.2f", i, current_pos[i]);
+  // }
 
   for (size_t i = 0; i < joint_position_command_interface_.size(); i++)
   {
@@ -215,19 +216,24 @@ controller_interface::return_type RobotController::update(
 
   q_(0) = current_pos[0];
   q_(1) = current_pos[1];
+  q_(2) = current_pos[2];
 
   const Eigen::VectorXd& tau = pinocchio::rnea(model_, data_, q_, v_, a_);
 
   joint_effort_command_interface_[1].get().set_value(tau(0));
-  joint_effort_command_interface_[2].get().set_value(tau(1));  
+  joint_effort_command_interface_[2].get().set_value(tau(1));
+  joint_effort_command_interface_[3].get().set_value(-tau(2));  
 
-  RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "p%.2f p%.2f t%.2f t%.2f", q_(0), q_(1),tau(0), tau(1));
+  //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "p%.2f p%.2f p%.2f, t%.2f, t%.2f t%.2f", q_(0), q_(1), q_(2), tau(0), tau(1), tau(2));
 
   return controller_interface::return_type::OK;
 }
 
 controller_interface::CallbackReturn RobotController::on_deactivate(const rclcpp_lifecycle::State &)
 {
+  joint_effort_command_interface_[1].get().set_value(0);
+  joint_effort_command_interface_[2].get().set_value(0);
+  joint_effort_command_interface_[3].get().set_value(0);  
   release_interfaces();
 
   return CallbackReturn::SUCCESS;
