@@ -1,108 +1,118 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="test_state_publisher_robot">
 
-  <link name="base_link">
-    <!-- <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="3.0"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial> -->
-    <visual name="Cube">
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+  <link name="link1">
+    <inertial>
+      <origin xyz="0.005025224974257385 0.000591246956100272 0.1406485292017584" rpy="0 0 0"/>
+      <mass value="22.70774043141286"/>
+      <inertia ixx="0.138286" iyy="0.141753" izz="0.061066" ixy="-0.00012" iyz="-0.000635" ixz="-0.01416"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.05 -0.095 -0.0515" rpy="0 0 0"/>
       <geometry>
-        <box size="0.24 0.14 0.22"/>
+        <mesh filename="file://$(find moteus_control)/meshes/link1_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
+      <material name="silver"/>
     </visual>
+    <collision>
+      <origin xyz="-0.05 -0.095 -0.0515" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(find moteus_control)/meshes/link1_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
-  <link name="link_1">
-    <!-- <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="3.0"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial> -->
-    <visual name="Cube">
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+  <link name="link2">
+    <inertial>
+      <origin xyz="0.0331249282490404 -0.008782165245542081 7.776382659974157e-05" rpy="0 0 0"/>
+      <mass value="4.469585742928346"/>
+      <inertia ixx="0.096735" iyy="0.00942" izz="0.097633" ixy="-0.0074" iyz="-5.6e-05" ixz="-8e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.129452 -0.096 -0.258548" rpy="0 0 0"/>
       <geometry>
-        <box size="0.24 0.14 0.22"/>
+        <mesh filename="file://$(find moteus_control)/meshes/link2_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
+      <material name="silver"/>
     </visual>
+    <collision>
+      <origin xyz="-0.129452 -0.096 -0.258548" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(find moteus_control)/meshes/link2_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
-  <link name="link_2">
-    <!-- <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="3.0"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial> -->
-    <visual name="Cube">
-      <origin xyz="1 0 0" rpy="0 0 0"/>
+  <link name="link3">
+    <inertial>
+      <origin xyz="-0.014018350116589001 -0.04260563451756741 -1.5875033888224088e-05" rpy="0 0 0"/>
+      <mass value="1.8887513349591307"/>
+      <inertia ixx="0.01281" iyy="0.002988" izz="0.014892" ixy="-0.002317" iyz="-1e-06" ixz="-1e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.164451 0.204 -0.258548" rpy="0 0 0"/>
       <geometry>
-        <box size="0.24 0.14 0.22"/>
+        <mesh filename="file://$(find moteus_control)/meshes/link3_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
+      <material name="silver"/>
     </visual>
+    <collision>
+      <origin xyz="-0.164451 0.204 -0.258548" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(find moteus_control)/meshes/link3_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
-  <link name="link_3">
-    <!-- <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="3.0"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial> -->
-    <visual name="Cube">
-      <origin xyz="1 0 0" rpy="0 0 0"/>
+  <link name="link4">
+    <inertial>
+      <origin xyz="-0.02856503032037011 -0.060805161547451636 -0.004181738483013175" rpy="0 0 0"/>
+      <mass value="1.4283524207710583"/>
+      <inertia ixx="0.003284" iyy="0.001129" izz="0.003752" ixy="-0.000246" iyz="-9.1e-05" ixz="3e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.141217 0.404 -0.258515" rpy="0 0 0"/>
       <geometry>
-        <box size="0.24 0.14 0.22"/>
+        <mesh filename="file://$(find moteus_control)/meshes/link4_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
+      <material name="silver"/>
     </visual>
+    <collision>
+      <origin xyz="-0.141217 0.404 -0.258515" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(find moteus_control)/meshes/link4_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
-  <link name="link_4">
-    <!-- <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="3.0"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial> -->
-    <visual name="Cube">
-      <origin xyz="1 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.24 0.14 0.22"/>
-      </geometry>
-    </visual>
-  </link>
 
-  <joint name="joint_1" type="revolute">
-    <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
+  <joint name="Joint1" type="revolute">
+    <origin xyz="0.05 0.095 0.0515" rpy="0 0 0"/>
     <parent link="base_link"/>
-    <child link="link_1"/>
-    <axis xyz="0 0 1.0"/>
-    <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
+    <child link="link1"/>
+    <axis xyz="-0.0 -0.0 -1.0"/>
   </joint>
 
-  <joint name="joint_2" type="revolute">
-    <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
-    <parent link="link_1"/>
-    <child link="link_2"/>
-    <axis xyz="0 1.0 0"/>
-    <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
+  <joint name="joint2" type="revolute">
+    <origin xyz="0.079452 0.001 0.207048" rpy="0 0 0"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+    <axis xyz="-1.0 0.0 -0.0"/>
   </joint>
 
-  <joint name="joint_3" type="revolute">
-    <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
-    <parent link="link_2"/>
-    <child link="link_3"/>
-    <axis xyz="0 1.0 0"/>
-    <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
+  <joint name="joint3" type="revolute">
+    <origin xyz="0.034999 -0.3 0.0" rpy="0 0 0"/>
+    <parent link="link2"/>
+    <child link="link3"/>
+    <axis xyz="-1.0 0.0 -0.0"/>
   </joint>
 
-  <joint name="joint_4" type="revolute">
-    <origin xyz="0 -0.1 0" rpy="1.5708 1.5708 0"/>
-    <parent link="link_3"/>
-    <child link="link_4"/>
-    <axis xyz="0 1.0 0"/>
-    <limit lower="-1.39626" upper="-0.5236" effort="35.0" velocity="26.0"/>
+  <joint name="joint4" type="revolute">
+    <origin xyz="-0.023234 -0.2 -3.3e-05" rpy="0 0 0"/>
+    <parent link="link3"/>
+    <child link="link4"/>
+    <axis xyz="-1.0 -0.0 0.0"/>
   </joint>
-
   <ros2_control name="moteus_hardware_interface" type="system">
       <hardware>
           <plugin>moteus_hardware_interface/MoteusHardwareInterface</plugin>
