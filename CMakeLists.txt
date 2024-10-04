@@ -104,6 +104,11 @@ install(
   DESTINATION share/moteus_control
 )
 
+install(
+  DIRECTORY meshes
+  DESTINATION share/moteus_control
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
