@@ -364,7 +364,8 @@ namespace moteus_hardware_interface
             if(hw_actuator_can_ids_[index] == canid)
             {
                 hw_state_efforts_[index] = r.torque/hw_actuator_gear_ratios_[index];
-                hw_state_positions_[index] = r.position*hw_actuator_gear_ratios_[index]*2*M_PI;
+                if (canid == 4) hw_state_positions_[index] = r.position*hw_actuator_gear_ratios_[index]*2*M_PI-hw_state_positions_[2];
+                else hw_state_positions_[index] = r.position*hw_actuator_gear_ratios_[index]*2*M_PI;
                 hw_state_velocities_[index] = r.velocity*hw_actuator_gear_ratios_[index]*2*M_PI;
                 hw_state_temperatures_[index] = r.temperature;
                 hw_state_states_[index] = static_cast<int>(r.mode);

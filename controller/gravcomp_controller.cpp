@@ -183,7 +183,7 @@ controller_interface::return_type RobotController::update(
   {
       current_pos[0] = joint_position_state_interface_[1].get().get_value(); //axis2
       current_pos[1] = joint_position_state_interface_[2].get().get_value(); //axis3
-      current_pos[2] = -joint_position_state_interface_[3].get().get_value()-current_pos[1]; //axis4
+      current_pos[2] = joint_position_state_interface_[3].get().get_value(); //axis4
   }
   else
   {
@@ -222,7 +222,7 @@ controller_interface::return_type RobotController::update(
 
   joint_effort_command_interface_[1].get().set_value(tau(0));
   joint_effort_command_interface_[2].get().set_value(tau(1));
-  joint_effort_command_interface_[3].get().set_value(-tau(2));  
+  joint_effort_command_interface_[3].get().set_value(tau(2));  
 
   //RCLCPP_INFO(rclcpp::get_logger("MoteusHardwareInterface"), "p%.2f p%.2f p%.2f, t%.2f, t%.2f t%.2f", q_(0), q_(1), q_(2), tau(0), tau(1), tau(2));
 
